@@ -18,8 +18,18 @@ export function buildApp() {
   fastify.register(fastifyJwt, {
     secret: process.env.JWT_SECRET || 'test-secret-key-min-32-chars-long!!',
   })
+  const allowedOrigins = [
+    'http://localhost:5173',
+    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+  ]
   fastify.register(fastifyCors, {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: (origin, cb) => {
+      if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
+        cb(null, true)
+      } else {
+        cb(new Error('Not allowed by CORS'), false)
+      }
+    },
     credentials: true,
   })
 
