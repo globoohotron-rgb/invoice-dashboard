@@ -5,34 +5,33 @@ import { syncOverdueInvoices } from '../services/invoiceService'
 
 type RevenuePeriod = 'week' | 'month' | 'quarter' | 'year'
 
-function getStartDate(period: RevenuePeriod): Date {
-  const now = new Date()
+function getStartDate(period: RevenuePeriod, anchor: Date): Date {
+  const d = new Date(anchor)
   switch (period) {
     case 'week':
-      now.setDate(now.getDate() - 7)
+      d.setDate(d.getDate() - 7)
       break
     case 'month':
-      now.setDate(now.getDate() - 30)
+      d.setDate(d.getDate() - 30)
       break
     case 'quarter':
-      now.setDate(now.getDate() - 90)
+      d.setDate(d.getDate() - 90)
       break
     case 'year':
-      now.setFullYear(now.getFullYear() - 1)
+      d.setFullYear(d.getFullYear() - 1)
       break
   }
-  return now
+  return d
 }
 
 function getLabel(date: Date, period: RevenuePeriod): string {
   switch (period) {
     case 'week': {
-      return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     }
     case 'month': {
-      // Group by week number within the month
       const weekNum = Math.ceil(date.getDate() / 7)
-      return `Week ${weekNum}`
+      return `W${weekNum} ${date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
     }
     case 'quarter':
     case 'year': {
@@ -50,8 +49,13 @@ async function dashboardRoutes(fastify: FastifyInstance) {
   fastify.get('/summary', async (_request, reply) => {
     await syncOverdueInvoices(prisma)
 
-    const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    // Use the most recent invoice date as anchor so summary reflects real data range
+    const latestInvoice = await prisma.invoice.findFirst({
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    })
+    const anchor = latestInvoice?.createdAt ?? new Date()
+    const startOfMonth = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
 
     const [outstanding, overdue, paidThisMonth, totalInvoices] = await Promise.all([
       prisma.invoice.aggregate({
@@ -88,7 +92,14 @@ async function dashboardRoutes(fastify: FastifyInstance) {
       })
     }
 
-    const startDate = getStartDate(period)
+    // Anchor to the most recent paid invoice so the window covers real data
+    const latestPaid = await prisma.invoice.findFirst({
+      where: { status: 'PAID' },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    })
+    const anchor = latestPaid?.createdAt ?? new Date()
+    const startDate = getStartDate(period, anchor)
 
     const invoices = await prisma.invoice.findMany({
       where: {
