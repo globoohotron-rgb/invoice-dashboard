@@ -48,7 +48,7 @@ export function buildApp() {
 if (require.main === module) {
   const app = buildApp()
   const port = Number(process.env.PORT) || 3000
-  const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost'
+  const host = process.env.PORT ? '0.0.0.0' : 'localhost'
 
   app.listen({ port, host }).then(() => {
     console.log(`Server running on http://localhost:${port}`)
