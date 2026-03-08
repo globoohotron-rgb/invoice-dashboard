@@ -36,10 +36,10 @@ async function authRoutes(fastify: FastifyInstance) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
     })
 
-    return reply.status(201).send({ user })
+    return reply.status(201).send({ user, token })
   })
 
   // POST /api/auth/login
@@ -73,6 +73,7 @@ async function authRoutes(fastify: FastifyInstance) {
 
     return reply.send({
       user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      token,
     })
   })
 

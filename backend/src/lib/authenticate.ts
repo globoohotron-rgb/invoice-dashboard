@@ -5,7 +5,13 @@ import type { FastifyReply } from 'fastify/types/reply'
 export function createAuthHandler(fastify: FastifyInstance) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const token = request.cookies?.token
+      let token = request.cookies?.token
+      if (!token) {
+        const authHeader = request.headers.authorization
+        if (authHeader?.startsWith('Bearer ')) {
+          token = authHeader.slice(7)
+        }
+      }
       if (!token) {
         return reply.status(401).send({ error: 'Unauthorized', message: 'No token provided' })
       }
