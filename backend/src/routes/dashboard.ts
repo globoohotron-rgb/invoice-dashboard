@@ -63,7 +63,7 @@ async function dashboardRoutes(fastify: FastifyInstance) {
         _sum: { totalAmount: true },
       }),
       prisma.invoice.aggregate({
-        where: { status: 'PAID', updatedAt: { gte: startOfMonth } },
+        where: { status: 'PAID', createdAt: { gte: startOfMonth } },
         _sum: { totalAmount: true },
       }),
       prisma.invoice.count(),
@@ -93,16 +93,16 @@ async function dashboardRoutes(fastify: FastifyInstance) {
     const invoices = await prisma.invoice.findMany({
       where: {
         status: 'PAID',
-        updatedAt: { gte: startDate },
+        createdAt: { gte: startDate },
       },
-      select: { totalAmount: true, updatedAt: true },
-      orderBy: { updatedAt: 'asc' },
+      select: { totalAmount: true, createdAt: true },
+      orderBy: { createdAt: 'asc' },
     })
 
     // Group amounts by period label
     const grouped = new Map<string, number>()
     for (const inv of invoices) {
-      const label = getLabel(inv.updatedAt, period)
+      const label = getLabel(inv.createdAt, period)
       grouped.set(label, (grouped.get(label) || 0) + Number(inv.totalAmount))
     }
 
