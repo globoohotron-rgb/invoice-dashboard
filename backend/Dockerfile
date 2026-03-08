@@ -15,4 +15,4 @@ RUN npx prisma generate
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy; node dist/server.js"]
+CMD ["sh", "-c", "timeout 30 npx prisma migrate deploy || true; node dist/server.js"]
